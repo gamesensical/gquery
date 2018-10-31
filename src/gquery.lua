@@ -531,10 +531,10 @@ function M.renderer.indicator_circle(x, y, r, g, b, a, percentage, outline)
 
   -- draw outline
   if outline then
-    renderer_circle_outline(ctx, x, y, 0, 0, 0, 200, radius, start_degrees, 1.0, 5)
+    renderer_circle_outline(x, y, 0, 0, 0, 200, radius, start_degrees, 1.0, 5)
   end
   -- draw inner circle
-  renderer_circle_outline(ctx, x, y, r, g, b, a, radius-1, start_degrees, percentage, 3)
+  renderer_circle_outline(x, y, r, g, b, a, radius-1, start_degrees, percentage, 3)
 end
 
 --paint event stuff
@@ -546,27 +546,60 @@ local paint_metatable = {["__index"] = function(self, index)
 	end
 end}
 
-function M.renderer.bar(x, y, w, h, r, g, b, a, lrt, rev, outline)
-	local ltr = ltr ~= nil and ltr or true
-	local rev = rev ~= nil and rev or false
-	local outline = outline ~= nil and outline or true
+function M.renderer.rectangle_outline(x, y, w, h, r, g, b, a)
+	renderer_rectangle(x, y, w, 1, r, g, b, a)
+	renderer_rectangle(x, y+1, 1, h-1, r, g, b, a)
+	
+	renderer_rectangle(x+w-1, y+1, 1, h-1, r, g, b, a)
+	renderer_rectangle(x+1, y+h-1, w-2, 1, r, g, b, a)
+end
+
+function M.renderer.bar(x, y, w, r, g, b, a, percentage, ltr, rev, outline)
+	local ltr = ltr == nil and true or ltr
+	local rev = rev == nil and false or rev
+	local outline = outline == nil and true or outline
+
+	local h = 4
 	
 	if not (outline and (w > 2 and h > 2) or (w > 0 or h > 0)) then
 		error("Invalid arguments. Width and/or height too small")
 	end
-	
-	local outline_r, outline_b, outline_g = 16, 16, 16
-	local outline_a = 200
+
+	local percentage = math_max(0, math_min(1, percentage))
+
+	local x_inner, y_inner = x, y
+	local w_inner, h_inner = w, h
+	local x_inner_add, y_inner_add = 0, 0
+
+	--outline makes inner rectangle smaller
 	if outline then
-		--draw outline using rectangles to prevent weird bug with draw_line
-		renderer_rectangle(ctx, x, y, w, 1, outline_r, outline_b, outline_g, outline_a)
-		renderer_rectangle(ctx, x, y, 1, h, outline_r, outline_b, outline_g, outline_a)
-		
-		renderer_rectangle(ctx, x+w, y+1, 1, h-1, outline_r, outline_b, outline_g, outline_a)
-		renderer_rectangle(ctx, x+1, y+h, w-1, 1, outline_r, outline_b, outline_g, outline_a)
+		w_inner, h_inner = w_inner-2, h_inner-2
+		x_inner, y_inner = x_inner+1, y_inner+1
+	end
+
+	local w_inner_prev = w_inner
+	w_inner, h_inner = math_ceil(w_inner * percentage), h_inner
+
+	--handle reverse bar
+	if rev then
+		x_inner_add = (w_inner_prev - w_inner)
+	end
+
+	--flip width and height if we're dealing with a vertical bar
+	if not ltr then
+		w, h = h, w
+		w_inner, h_inner = h_inner, w_inner
+		x_inner_add, y_inner_add = y_inner_add, x_inner_add
 	end
 	
-	--todo
+	local outline_r, outline_b, outline_g, outline_a = 16, 16, 16, 170
+	if outline then
+		renderer_rectangle(x, y, w, h, outline_r, outline_b, outline_g, outline_a)
+	end
+
+	renderer_rectangle(x_inner+x_inner_add, y_inner+y_inner_add, w_inner, h_inner, r, g, b, a)
+
+	return x_inner+x_inner_add, y_inner+y_inner_add, w_inner, h_inner
 end
 
 --aim event stuff
