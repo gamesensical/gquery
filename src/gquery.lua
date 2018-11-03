@@ -30,7 +30,7 @@ local client_latency, client_set_clan_tag, client_log, client_draw_rectangle, cl
 local client_draw_circle, client_draw_gradient, client_set_event_callback, client_screen_size, client_trace_line, client_draw_text, client_color_log = client.draw_circle, client.draw_gradient, client.set_event_callback, client.screen_size, client.trace_line, client.draw_text, client.color_log 
 local client_system_time, client_delay_call, client_visible, client_exec, client_open_panorama_context, client_set_cvar, client_eye_position = client.system_time, client.delay_call, client.visible, client.exec, client.open_panorama_context, client.set_cvar, client.eye_position 
 local client_draw_hitboxes, client_get_cvar, client_draw_line, client_camera_angles, client_draw_debug_text, client_random_int, client_random_float = client.draw_hitboxes, client.get_cvar, client.draw_line, client.camera_angles, client.draw_debug_text, client.random_int, client.random_float 
-local entity_get_local_player, entity_is_enemy, entity_get_bounding_box, entity_is_dormant, entity_get_steam64, entity_get_player_name, entity_hitbox_position, entity_get_game_rules, entity_get_all = entity.get_local_player, entity.is_enemy, entity.get_bounding_box, entity.is_dormant, entity.get_steam64, entity.get_player_name, entity.hitbox_position, entity.get_game_rules, entity.get_all 
+local entity_get_player_resource, entity_get_local_player, entity_is_enemy, entity_get_bounding_box, entity_is_dormant, entity_get_steam64, entity_get_player_name, entity_hitbox_position, entity_get_game_rules, entity_get_all = entity.get_player_resource, entity.get_local_player, entity.is_enemy, entity.get_bounding_box, entity.is_dormant, entity.get_steam64, entity.get_player_name, entity.hitbox_position, entity.get_game_rules, entity.get_all 
 local entity_set_prop, entity_is_alive, entity_get_player_weapon, entity_get_prop, entity_get_players, entity_get_classname = entity.set_prop, entity.is_alive, entity.get_player_weapon, entity.get_prop, entity.get_players, entity.get_classname 
 local globals_realtime, globals_absoluteframetime, globals_tickcount, globals_lastoutgoingcommand, globals_curtime, globals_mapname, globals_tickinterval = globals.realtime, globals.absoluteframetime, globals.tickcount, globals.lastoutgoingcommand, globals.curtime, globals.mapname, globals.tickinterval 
 local globals_framecount, globals_frametime, globals_maxplayers = globals.framecount, globals.frametime, globals.maxplayers 
@@ -40,7 +40,7 @@ local math_ceil, math_tan, math_cos, math_sinh, math_pi, math_max, math_atan2, m
 local math_pow, math_abs, math_min, math_sin, math_log, math_exp, math_cosh, math_asin, math_rad = math.pow, math.abs, math.min, math.sin, math.log, math.exp, math.cosh, math.asin, math.rad 
 local table_sort, table_remove, table_concat, table_insert = table.sort, table.remove, table.concat, table.insert 
 local string_find, string_format, string_gsub, string_len, string_gmatch, string_match, string_reverse, string_upper, string_lower, string_sub = string.find, string.format, string.gsub, string.len, string.gmatch, string.match, string.reverse, string.upper, string.lower, string.sub 
-local renderer_line, renderer_indicator, renderer_world_to_screen, renderer_circle_outline, renderer_rectangle, renderer_gradient, renderer_circle, renderer_text = renderer.line, renderer.indicator, renderer.world_to_screen, renderer.circle_outline, renderer.rectangle, renderer.gradient, renderer.circle, renderer.text 
+local renderer_circle_outline, renderer_rectangle, renderer_gradient, renderer_circle, renderer_text, renderer_line, renderer_measure_text, renderer_indicator, renderer_world_to_screen = renderer.circle_outline, renderer.rectangle, renderer.gradient, renderer.circle, renderer.text, renderer.line, renderer.measure_text, renderer.indicator, renderer.world_to_screen 
 --end of local variables 
 
 local random = client.random_int
@@ -342,21 +342,19 @@ comparisons_mt["__le"] = function(self, second) return self() <= replace_objects
 --entity metatable
 local entity_class = {}
 local entity_mt = {["__index"] = function(self, index) return entity_class[index] end}
-
-entity_class["__call"] = function(self) return self["__value"] end
-entity_class["__tostring"] = function(self) return tostring(self()) end
-entity_class["__unm"] = function(self) return -self() end
-entity_class["__add"] = function(self, second) return self() + replace_objects("__value", second) end
-entity_class["__sub"] = function(self, second) return self() - replace_objects("__value", second) end
-entity_class["__mul"] = function(self, second) return self() * replace_objects("__value", second) end
-entity_class["__div"] = function(self, second) return self() / replace_objects("__value", second) end
-entity_class["__mod"] = function(self, second) return self() % replace_objects("__value", second) end
-entity_class["__pow"] = function(self, second) return self() ^ replace_objects("__value", second) end
-entity_class["__concat"] = function(self, second) return self() .. replace_objects("__value", second) end
-
-entity_class["__eq"] = function(self, second) return self() == replace_objects("__value", second) end
-entity_class["__lt"] = function(self, second) return self() < replace_objects("__value", second) end
-entity_class["__le"] = function(self, second) return self() <= replace_objects("__value", second) end
+entity_mt["__call"] = function(self) return self["__value"] end
+entity_mt["__tostring"] = function(self) return tostring(self()) end
+entity_mt["__unm"] = function(self) return -self() end
+entity_mt["__add"] = function(self, second) return self() + replace_objects("__value", second) end
+entity_mt["__sub"] = function(self, second) return self() - replace_objects("__value", second) end
+entity_mt["__mul"] = function(self, second) return self() * replace_objects("__value", second) end
+entity_mt["__div"] = function(self, second) return self() / replace_objects("__value", second) end
+entity_mt["__mod"] = function(self, second) return self() % replace_objects("__value", second) end
+entity_mt["__pow"] = function(self, second) return self() ^ replace_objects("__value", second) end
+entity_mt["__concat"] = function(self, second) return self() .. replace_objects("__value", second) end
+entity_mt["__eq"] = function(self, second) return self() == replace_objects("__value", second) end
+entity_mt["__lt"] = function(self, second) return self() < replace_objects("__value", second) end
+entity_mt["__le"] = function(self, second) return self() <= replace_objects("__value", second) end
 
 function entity_class:get_prop(propname, array_index) return entity_get_prop(self, propname, array_index) end
 function entity_class:set_prop(propname, value, array_index) return entity_set_prop(self, propname, value, array_index) end
@@ -377,7 +375,7 @@ function entity_class:is_flagged(flag) return bit_band(self:get_flags(), flag) =
 function entity_class:is_on_ground() return self:is_flagged(FL_ONGROUND) end
 function entity_class:is_ducked() return self:get_prop("m_bDucked") == 1 end
 function entity_class:is_scoped() return self:get_prop("m_bIsScoped") == 1 end
-function entity_class:get_resource_prop(propname) return entity_get_prop(entity_get_all("CCSPlayerResource")[1], propname, self) end
+function entity_class:get_resource_prop(propname) return entity_get_prop(entity_get_player_resource(), propname, self) end
 function entity_class:dormant_is_alive() return self:get_resource_prop("m_bAlive") == 1 end
 function entity_class:dormant_get_team() return setmetatable(self:get_resource_prop("m_iTeam"), team_mt) end
 function entity_class:dormant_is_enemy() return self:dormant_get_team() ~= entity_get_prop(entity_get_local_player(), "m_iTeamNum") end
@@ -390,7 +388,7 @@ function entity_class:get_ping() return self:get_resource_prop("m_iPing") end
 function entity_class:hitbox_position(hitbox) return entity_hitbox_position(self, hitbox) end
 function entity_class:is_dormant() return entity_is_dormant(self) end
 function entity_class:is_local_player() return self == entity_get_local_player() end
-function entity_class:has_bomb() return self == entity_get_prop(entity_get_all("CCSPlayerResource")[1], "m_iPlayerC4") end
+function entity_class:has_bomb() return self == entity_get_prop(entity_get_player_resource(), "m_iPlayerC4") end
 function entity_class:get_name(sanitize_player_name)
 	if self == 0 then
 		return "World"
@@ -456,10 +454,13 @@ end
 M.entity.from_entindex = function(entindex) return apply_metatable(entity_mt, entindex) end
 M.entity.from_userid = function(userid) return apply_metatable(entity_mt, client_userid_to_entindex(userid)) end
 M.entity.get_local_player = apply_metatable_function(entity_mt, entity_get_local_player)
-M.entity.get_player_resource = apply_metatable_function(entity_mt, function() return entity_get_all("CCSPlayerResource")[1] end)
+M.entity.get_player_resource = apply_metatable_function(entity_mt, entity_get_player_resource)
+M.entity.get_game_rules = apply_metatable_function(entity_mt, entity_get_game_rules)
 M.entity.get_all = apply_metatable_function(entity_mt, entity_get_all)
 M.entity.get_players = apply_metatable_function(entity_mt, entity_get_players)
 M.entity.get_prop = apply_metatable_function(entity_mt, entity_get_prop)
+
+M.client.userid_to_entindex = M.entity.from_userid
 
 local entity_from_entindex = M.entity.from_entindex
 M.entity.get_dormant_players = function(enemy_only, alive_only)
@@ -514,7 +515,21 @@ end
 function M.globals.tickrate()
 	return 1 / globals_tickinterval()
 end
+
 function M.globals.framerate()
+	--todo
+end
+
+function M.globals.match_state()
+	local game_rules = entity_get_game_rules()
+	if game_rules:get_prop("m_bWarmupPeriod") == 1 then
+		return "Warmup"
+	end
+
+end
+
+function M.globals.is_valve_server()
+	return entity_get_game_rules():get_prop("m_bIsValveDS") == 1
 end
 
 --client
@@ -536,15 +551,6 @@ function M.renderer.indicator_circle(x, y, r, g, b, a, percentage, outline)
   -- draw inner circle
   renderer_circle_outline(x, y, r, g, b, a, radius-1, start_degrees, percentage, 3)
 end
-
---paint event stuff
-local paint_metatable = {["__index"] = function(self, index)
-	local fn = M.renderer[index] or M.renderer[index:sub(6)]
-	if fn == nil then return nil end
-	return function(ctx, ...)
-		return fn(...)
-	end
-end}
 
 function M.renderer.rectangle_outline(x, y, w, h, r, g, b, a)
 	renderer_rectangle(x, y, w, 1, r, g, b, a)
@@ -601,6 +607,32 @@ function M.renderer.bar(x, y, w, r, g, b, a, percentage, ltr, rev, outline)
 
 	return x_inner+x_inner_add, y_inner+y_inner_add, w_inner, h_inner
 end
+
+--syntax: client.draw_text(paint_ctx, x, y, r, g, b, a, flags, max_width, ...)
+function M.renderer.texta(x, y, r, g, b, a, flags, max_width, ...)
+	local args = {...}
+	local text = {}
+
+	for i=1, #args do
+		local arg = args[i]
+		if type(arg) == "table" then
+
+		end
+		if type(arg) == "table" or i == #args then
+			--actually draw text
+			--renderer_text(x, y, r, g, b, a, )
+		end
+	end
+end
+
+--paint event stuff
+local paint_metatable = {["__index"] = function(self, index)
+	local fn = M.renderer[index] or M.renderer[index:sub(6)]
+	if fn == nil then return nil end
+	return function(ctx, ...)
+		return fn(...)
+	end
+end}
 
 --aim event stuff
 local aim_registered = false
@@ -758,10 +790,10 @@ local forbidden_cvars = {
 }
 M.client.set_cvar = function(cvar, value)
 	if table_contains(forbidden_cvars, cvar) then
-        client.log("A script tried to set forbidden cvar ", cvar, ". self has been prevented.")
-        return false
-    end
-    return previous_client_set_cvar(cvar, value)
+		client.log("A script tried to set forbidden cvar ", cvar, ". self has been prevented.")
+		return false
+	end
+	return previous_client_set_cvar(cvar, value)
 end
 M.client.get_cvar = function(cvar)
 	local result = client_get_cvar(cvar)
@@ -798,6 +830,7 @@ M.client.say = function(message, ...)
 	message = escape_chat_message(message, ...)
 	client_exec("say ", message)
 end
+
 M.client.say_team = function(message, ...)
 	message = escape_chat_message(message, ...)
 	client_exec("say_team ", message)
@@ -819,7 +852,6 @@ local function on_run_command(e)
 
 	local weapon = local_player:get_weapon()
 	if weapon_prev ~= nil and weapon ~= nil and weapon ~= weapon_prev then
-		client.log(weapon)
 		run_event_callbacks("gq_weapon_switched", {["weapon"]=weapon, ["weapon_prev"]=weapon_prev})
 	end
 	weapon_prev = weapon
